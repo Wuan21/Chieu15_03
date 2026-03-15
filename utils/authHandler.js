@@ -1,5 +1,6 @@
 let userController = require('../controllers/users')
 let jwt = require('jsonwebtoken')
+let { publicKey } = require('../config/keys')
 module.exports = {
     CheckLogin: async function (req, res, next) {
         try {
@@ -9,7 +10,7 @@ module.exports = {
                 return;
             }
             token = token.split(' ')[1]
-            let result = jwt.verify(token, 'secret');
+            let result = jwt.verify(token, publicKey, { algorithm: 'RS256' });
             if (result.exp * 1000 < Date.now()) {
                 res.status(403).send({ message: "ban chua dang nhap" })
                 return;

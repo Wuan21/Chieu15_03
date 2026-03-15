@@ -52,5 +52,15 @@ module.exports = {
         body('role').isEmpty().withMessage("role khong duoc thay doi"),
         body('avatarUrl').optional().isArray().withMessage("avatarURl pahi la 1 mang"),
         body('avatarUrl.*').isURL().withMessage("URL khong hop le"),
+    ],
+    ChangePasswordValidator: [
+        body('oldPassword').notEmpty().withMessage("Old password is required").bail(),
+        body('newPassword').notEmpty().withMessage("New password is required").bail().isStrongPassword({
+            minLength: 8,
+            minLowercase: 1,
+            minNumbers: 1,
+            minSymbols: 1,
+            minUppercase: 1
+        }).withMessage("New password must have at least 8 characters with uppercase, lowercase, number and symbol")
     ]
 }
