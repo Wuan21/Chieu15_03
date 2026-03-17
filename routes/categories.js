@@ -28,17 +28,37 @@ router.get('/:id', async function (req, res, next) {
   }
 });
 router.post('/', async function (req, res, next) {
-  let newCate = new categoryModel({
-    name: req.body.name,
-    slug: slugify(req.body.name, {
-      replacement: '-',
-      remove: undefined,
-      lower: true,
-      strict: false,
-    })
-  });
-  await newCate.save();
-  res.send(newCate)
+  try {
+    let payload = req.body;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch (parseError) {
+        return res.status(400).send({ message: "body JSON khong hop le" });
+      }
+    }
+
+    if (!payload || typeof payload !== 'object' || typeof payload.name !== 'string' || payload.name.trim().length === 0) {
+      return res.status(400).send({ message: "name khong duoc de trong" });
+    }
+
+    let categoryName = payload.name.trim();
+    let newCate = new categoryModel({
+      name: categoryName,
+      slug: slugify(categoryName, {
+        replacement: '-',
+        remove: undefined,
+        lower: true,
+        strict: false,
+      }),
+      description: payload.description,
+      image: payload.image
+    });
+    await newCate.save();
+    res.send(newCate)
+  } catch (error) {
+    res.status(400).send({ message: error.message });
+  }
 })
 router.put('/:id', async function (req, res, next) {
   try {

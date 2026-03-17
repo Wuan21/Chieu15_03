@@ -2,7 +2,6 @@ let userModel = require("../schemas/users");
 let bcrypt = require('bcrypt')
 let jwt = require('jsonwebtoken')
 let fs = require('fs')
-let { privateKey } = require('../config/keys')
 
 module.exports = {
     CreateAnUser: async function (username, password, email, role, fullName, avatarUrl, status, loginCount) {
@@ -26,10 +25,36 @@ module.exports = {
     GetUserById: async function (id) {
         try {
             return await userModel
-                .find({
+                .findOne({
                     isDeleted: false,
                     _id: id
+                }).populate('role')
+        } catch (error) {
+            return false;
+        }
+    },
+    GetUserByEmail: async function (email) {
+        try {
+            return await userModel
+                .findOne({
+                    isDeleted: false,
+                    email: email
                 })
+        } catch (error) {
+            return false;
+        }
+    },
+    GetUserByToken: async function (token) {
+        try {
+            let user = await userModel
+                .findOne({
+                    isDeleted: false,
+                    forgotPasswordToken: token
+                })
+            if (user.forgotPasswordTokenExp > Date.now()) {
+                return user;
+            }
+            return false;
         } catch (error) {
             return false;
         }
@@ -43,41 +68,40 @@ module.exports = {
             isDeleted: false
         })
         if (user) {
-            if (bcrypt.compareSync(password, user.password)) {
-                return jwt.sign({
-                    id: user.id
-                }, privateKey, {
-                    algorithm: 'RS256',
-                    expiresIn: '1d'
-                })
-            } else {
+            if (user.lockTime && user.lockTime > Date.now()) {
                 return false;
+            } else {
+                if (bcrypt.compareSync(password, user.password)) {
+                    user.loginCount = 0;
+                    await user.save();
+                    let token = jwt.sign({
+                        id: user.id
+                    }, 'secret', {
+                        expiresIn: '1d'
+                    })
+                    return token;
+                } else {
+                    //sai pass
+                    user.loginCount++;
+                    if (user.loginCount == 3) {
+                        user.loginCount = 0;
+                        user.lockTime = Date.now() + 3_600_000;
+                    }
+                    await user.save();
+                    return false;
+                }
             }
         } else {
             return false;
         }
     },
-    ChangePassword: async function (userId, oldPassword, newPassword) {
-        try {
-            let user = await userModel.findById(userId);
-            if (!user) {
-                return { success: false, message: 'User not found' };
-            }
-            
-            // Verify old password
-            if (!bcrypt.compareSync(oldPassword, user.password)) {
-                return { success: false, message: 'Old password is incorrect' };
-            }
-            
-            // Hash new password
-            const hashedPassword = bcrypt.hashSync(newPassword, 10);
-            
-            // Update password
-            await userModel.findByIdAndUpdate(userId, { password: hashedPassword });
-            
-            return { success: true, message: 'Password changed successfully' };
-        } catch (error) {
-            return { success: false, message: 'Error changing password' };
+    ChangePassword: async function (user, oldPassword, newPassword) {
+        if (bcrypt.compareSync(oldPassword, user.password)) {
+            user.password = newPassword;
+            await user.save();
+            return true;
+        } else {
+            return false;
         }
     }
 }

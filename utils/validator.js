@@ -38,6 +38,15 @@ module.exports = {
             minSymbols: 1,
             minUppercase: 1
         }).withMessage("password phai co it nhat 8 ki tu trong do co it nhat 1 ki tu chu hoa, 1 ki tu chu thuong,1 ki tu so va 1 ki tu dac biet"),
+    ],ChangePasswordValidator: [
+        body('oldpassword').notEmpty().withMessage("email khong duoc de trong"),
+        body('newpassword').notEmpty().withMessage("password khong duoc de trong").bail().isStrongPassword({
+            minLength: 8,
+            minLowercase: 1,
+            minNumbers: 1,
+            minSymbols: 1,
+            minUppercase: 1
+        }).withMessage("password phai co it nhat 8 ki tu trong do co it nhat 1 ki tu chu hoa, 1 ki tu chu thuong,1 ki tu so va 1 ki tu dac biet"),
     ],
     ModifyAnUserValidator: [
         body('email').isEmpty().withMessage("email khong duoc thay doi"),
@@ -53,14 +62,8 @@ module.exports = {
         body('avatarUrl').optional().isArray().withMessage("avatarURl pahi la 1 mang"),
         body('avatarUrl.*').isURL().withMessage("URL khong hop le"),
     ],
-    ChangePasswordValidator: [
-        body('oldPassword').notEmpty().withMessage("Old password is required").bail(),
-        body('newPassword').notEmpty().withMessage("New password is required").bail().isStrongPassword({
-            minLength: 8,
-            minLowercase: 1,
-            minNumbers: 1,
-            minSymbols: 1,
-            minUppercase: 1
-        }).withMessage("New password must have at least 8 characters with uppercase, lowercase, number and symbol")
+    InventoryQuantityValidator: [
+        body('product').notEmpty().withMessage("product khong duoc de trong").bail().isMongoId().withMessage("product phai la ID"),
+        body('quantity').notEmpty().withMessage("quantity khong duoc de trong").bail().isFloat({ gt: 0 }).withMessage("quantity phai lon hon 0").toFloat()
     ]
 }
